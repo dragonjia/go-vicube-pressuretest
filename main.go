@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MAXConCurrency = 10
+	MAXConCurrency = 100
 	HeaderContentType = "application/json"
 	TimeFormat = "2006-01-02 15:04:05"
 )
@@ -26,7 +26,8 @@ var(
 	seq=0
 	over = make(chan bool)
   	sem = make(chan bool, MAXConCurrency) //控制并发任务数
-	maxCount = 100
+	maxCount = 5000
+	wg sync.WaitGroup
 )
 func checkErr(err error) {
 	if err != nil {
@@ -164,20 +165,24 @@ func postKpi() string{
 
 	//fmt.Printf("Response Seq=%v\t Response:\t\r\n",seq)
 	//fmt.Print("\t%v",perf_json)
+	wg.Done()
 	return perf_json
 }
 
 func main() {
 
+	var btime = time.Now().Unix()
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	var wg sync.WaitGroup
 
 	for i:=0; i<maxCount;i++  {
 		wg.Add(1)
 		fmt.Printf("#######For num:%v\n", i)
 		go postKpi()
-		time.Sleep(1* time.Second)
+		//time.Sleep(1* time.Second)
 	}
 	wg.Wait() //等待所有goroutine退出
 	//fmt.Println(s)
+	var etime=time.Now().Unix()
+
+	fmt.Printf("summary:\r\n \tTotal Reqs:\t%v\r\n\t used secs:\t%v\r\n\t avg tps:%v\r\n",maxCount,etime-btime,int64(maxCount)/(etime-btime))
 }
